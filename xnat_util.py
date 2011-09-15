@@ -45,3 +45,28 @@ def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     if user not in xnat.manage.users():
         raise ValueError('This XNAT is weird.')
     return xnat
+    
+def new_subject(project, name, xnat_info={}):
+    """ Create a new subject
+    
+    Parameters
+    ----------
+    xnat: pyxnat.Interface.project()
+        An established project
+    name: str
+        Subject identifier
+    kwargs: dict
+        See 'xnat:subjectData' at
+        http://docs.xnat.org/XNAT+REST+XML+Path+Shortcuts
+        for allowed keys
+    
+    Returns
+    -------
+    sub: a valid subject
+    """
+    if not project.exists():
+        raise ValueError("Project %s doesn't exist" % project.id() )
+    sub = project.subject(name)
+    if xnat_info:
+        sub.attrs.mset(xnat_info)
+    return sub
