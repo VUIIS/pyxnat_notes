@@ -6,7 +6,7 @@ from pyxnat.core.errors import *
 
 def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     """Initialize and test xnat connection from a previously-stored cfg file
-    
+
     Parameters
     ----------
     cfg: str
@@ -17,14 +17,14 @@ def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
         password: [your password]
         server: [your xnat server]
         cache: [dir]
-        
+
     Returns
     -------
     A valid Interface object to your XNAT system.
-    
+
     This may throw an error from pyxnat.core.errors
     """
-    
+
     cp = ConfigParser()
     with open(cfg) as f:
         cp.readfp(f)
@@ -98,7 +98,7 @@ def _key_check(check_type, keys):
     bad_keys: iterable
         keys the caller specified that xnat won't accept
     """
-    allowed_keys = ['subject': set(['group', 'src', 'pi_lastname', 'pi_firstname',
+    allowed_keys = {'subject': set(['group', 'src', 'pi_lastname', 'pi_firstname',
                     'dob',' yob', 'age', 'gender', 'handedness', 'ses',
                     'education', 'educationDesc', 'race', 'ethnicity',
                     'weight', 'height', 'gestational_age',
@@ -113,4 +113,4 @@ def _key_check(check_type, keys):
     else:
         bad_keys.extend(allowed_keys[check_type].difference(key_set))
     return passed, bad_keys
-    
+
