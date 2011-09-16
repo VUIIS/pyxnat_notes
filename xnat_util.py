@@ -2,7 +2,7 @@ import os
 from ConfigParser import ConfigParser
 
 from pyxnat import Interface
-from pdb import set_trace
+from pyxnat.core.errors import *
 
 def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     """Initialize and test xnat connection from a previously-stored cfg file
@@ -22,7 +22,7 @@ def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     -------
     A valid Interface object to your XNAT system.
     
-    This may throw something from pyxnat.core.errors
+    This may throw an error from pyxnat.core.errors
     """
     
     cp = ConfigParser()
@@ -46,27 +46,34 @@ def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
         raise ValueError('This XNAT is weird.')
     return xnat
     
-def new_subject(project, name, xnat_info={}):
-    """ Create a new subject
+def subject(project, name, demo={}):
+    """ Create a new subject/Update subject info
     
+    WARNING: Previously stored data will be overwritten
+
     Parameters
     ----------
-    xnat: pyxnat.Interface.project()
+    project: pyxnat.Interface.project()
         An established project
     name: str
         Subject identifier
-    kwargs: dict
+    demo: dict
+        Demographic data to set in xnat
         See 'xnat:subjectData' at
         http://docs.xnat.org/XNAT+REST+XML+Path+Shortcuts
         for allowed keys
-    
+
     Returns
     -------
-    sub: a valid subject
+    sub: a valid subject object
     """
     if not project.exists():
         raise ValueError("Project %s doesn't exist" % project.id() )
     sub = project.subject(name)
-    if xnat_info:
-        sub.attrs.mset(xnat_info)
+    if not sub.exists():
+        sub.create()
+    #  multiple attribute set
+    if demo:
+        #  TODO: check info keys against allowed variables in xnat
+        sub.attrs.mset(demo)
     return sub
