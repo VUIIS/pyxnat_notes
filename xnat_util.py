@@ -110,6 +110,6 @@ def _key_check(check_type, keys):
     if allowed_keys[check_type].issuperset(key_set):
         passed = True
     else:
-        bad_keys.extend(allowed_keys[check_type].difference(key_set))
+        bad_keys.extend(key_set.difference(allowed_keys[check_type]))
     return passed, bad_keys
 
