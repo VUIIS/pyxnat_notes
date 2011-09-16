@@ -2,7 +2,6 @@ import os
 from ConfigParser import ConfigParser
 
 from pyxnat import Interface
-from pyxnat.core.errors import *
 
 def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     """Initialize and test xnat connection from a previously-stored cfg file
