@@ -20,6 +20,10 @@ class UtilityFunctionTests(unittest.TestCase):
         
     def test_key_check_bad_type(self):
         """ Test _key_check for not-implemented types """
-        bad_args = ['asdfjkl;', []]
-        self.assertRaises(NotImplementedError, xutil._key_check, *bad_args)
-
+        self.assertRaises(NotImplementedError, xutil._key_check, *['foo', []])
+    
+    def test_(self):
+        """ Test _key_check for bad subject keys """
+        passed, bad_keys = xutil._key_check('subject', {'foo': 'bar'})
+        self.assertFalse(passed)
+        self.assertIn('foo', bad_keys)
