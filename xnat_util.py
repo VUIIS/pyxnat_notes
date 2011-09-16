@@ -74,6 +74,16 @@ def subject(project, name, demo={}):
         sub.create()
     #  multiple attribute set
     if demo:
-        #  TODO: check info keys against allowed variables in xnat
+        #  This list doesn't include the read-only keys last_modified,
+        #  insert_date, insert_user
+        allowed = set(('group', 'src', 'pi_lastname', 'pi_firstname', 'dob',
+                   'yob', 'age', 'gender', 'handedness', 'ses', 'education',
+                   'educationDesc', 'race', 'ethnicity', 'weight', 'height',
+                   'gestational_age', 'post_menstrual_age', 'birth_weight'))
+        key_set = set(demo.keys())
+        if not allowed.issuperset(key_set):
+            bad_keys = allowed.difference(key_set)
+            raise ValueError("Bad demographics keys: %s" % ' '.join(bad_keys))
+        pass, bad_keys = _check_keys('subject', demo.keys())
         sub.attrs.mset(demo)
     return sub
