@@ -75,14 +75,14 @@ def subject(project, name, demo={}):
     #  multiple attribute set
     if demo:
         #  let NotImplementedError keep going
-        passed_check, bad_keys = _check_keys('subject', demo.keys())
+        passed_check, bad_keys = _key_check('subject', demo.keys())
         if passed_check:
             sub.attrs.mset(demo)
         else:
             raise ValueError("Bad demographics keys: %s" % ' '.join(bad_keys))
     return sub
 
-def _check_keys(check_type, keys):
+def _key_check(check_type, keys):
     """ Private method to validate parameters before resource creation.
 
     Parameters
