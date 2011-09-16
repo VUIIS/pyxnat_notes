@@ -44,7 +44,34 @@ def load_xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     if user not in xnat.manage.users():
         raise ValueError('This XNAT is weird.')
     return xnat
+
+def project(xnat, proj_name, proj_data={}):
+    """ Create a new project/update project info
     
+    Parameters
+    ----------
+    xnat: pyxnat.Interface object
+        The connection to your xnat system
+    proj_name: str
+        Project name
+    proj_data: dict
+        Project data you'd like to initialize 
+    Returns
+    -------
+    pjt: Project object
+        
+    """
+    pjt = xnat.select.project(proj_name)
+    if not pjt.exists():
+        pjt.create()
+    if proj_data:
+        passed_check, bad_keys = _key_check('project', proj_data.keys())
+        if passed_check:
+            pjt.attrs.mset(proj_data)
+        else:
+            raise ValueError("Bad project keys: %s" % ' '.join(bad_keys))
+    return pjt
+
 def subject(project, name, demo={}):
     """ Create a new subject/Update subject info
     
@@ -97,11 +124,15 @@ def _key_check(check_type, keys):
     bad_keys: iterable
         keys the caller specified that xnat won't accept
     """
-    allowed_keys = {'subject': set(['group', 'src', 'pi_lastname', 'pi_firstname',
-                    'dob',' yob', 'age', 'gender', 'handedness', 'ses',
-                    'education', 'educationDesc', 'race', 'ethnicity',
-                    'weight', 'height', 'gestational_age',
-                    'post_menstrual_age', 'birth_weight'])}
+    allowed_keys = {'subject': set(['group', 'src', 'pi_lastname',
+                        'pi_firstname','dob',' yob', 'age', 'gender',
+                        'handedness', 'ses', 'education', 'educationDesc',
+                        'race', 'ethnicity', 'weight', 'height',
+                        'gestational_age','post_menstrual_age',
+                        'birth_weight']),
+                    'project': set(['ID', 'secondary_ID', 'name',
+                        'description', 'keywords', 'alias', 'pi_lastname',
+                        'pi_firstname', 'note'])}
     if check_type not in allowed_keys:
         raise NotImplementedError("Cannot currently check %s" % check_type)
     key_set = set(keys)
