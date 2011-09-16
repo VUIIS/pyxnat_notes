@@ -74,16 +74,43 @@ def subject(project, name, demo={}):
         sub.create()
     #  multiple attribute set
     if demo:
-        #  This list doesn't include the read-only keys last_modified,
-        #  insert_date, insert_user
-        allowed = set(('group', 'src', 'pi_lastname', 'pi_firstname', 'dob',
-                   'yob', 'age', 'gender', 'handedness', 'ses', 'education',
-                   'educationDesc', 'race', 'ethnicity', 'weight', 'height',
-                   'gestational_age', 'post_menstrual_age', 'birth_weight'))
-        key_set = set(demo.keys())
-        if not allowed.issuperset(key_set):
-            bad_keys = allowed.difference(key_set)
+        #  let NotImplementedError keep going
+        passed_check, bad_keys = _check_keys('subject', demo.keys())
+        if passed_check:
+            sub.attrs.mset(demo)
+        else:
             raise ValueError("Bad demographics keys: %s" % ' '.join(bad_keys))
-        pass, bad_keys = _check_keys('subject', demo.keys())
-        sub.attrs.mset(demo)
     return sub
+
+def _check_keys(check_type, keys):
+    """ Private method to validate parameters before resource creation.
+
+    Parameters
+    ----------
+    check_type: subject
+        resource type
+    keys: iterable
+        parameters to check
+    Returns
+    -------
+    passed: bool
+        True if keys match xnat parameters, False if not
+    bad_keys: iterable
+        keys the caller specified that xnat won't accept
+    """
+    allowed_keys = ['subject': set(['group', 'src', 'pi_lastname', 'pi_firstname',
+                    'dob',' yob', 'age', 'gender', 'handedness', 'ses',
+                    'education', 'educationDesc', 'race', 'ethnicity',
+                    'weight', 'height', 'gestational_age',
+                    'post_menstrual_age', 'birth_weight'])}
+    if check_type not in allowed_keys:
+        raise NotImplementedError("Cannot currently check %s" % check_type)
+    key_set = set(keys)
+    passed = False
+    bad_keys = []
+    if allowed_keys[check_type].issuperset(key_set):
+        passed = True
+    else:
+        bad_keys.extend(allowed_keys[check_type].difference(key_set))
+    return passed, bad_keys
+    
