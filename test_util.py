@@ -3,6 +3,9 @@
 
 import unittest
 
+from pyxnat.core.resources import Project, Subject, Experiment, Scan,\
+                                  Resource, File
+
 import xnat_util as xutil
 
 class UtilityFunctionTests(unittest.TestCase):
@@ -10,7 +13,7 @@ class UtilityFunctionTests(unittest.TestCase):
     
     def setUp(self):
         """ Init xnat"""
-        self.xnat = xutil.load_xnat()
+        self.xnat = xutil.xnat()
         self.pjt = self.xnat.select.project('BTest')
         self.sub = self.pjt.subject('sub1000')
         
@@ -18,12 +21,12 @@ class UtilityFunctionTests(unittest.TestCase):
         """ Nothing to do? """
         pass
         
-    def test_key_check_bad_type(self):
+    def test_key_check_type(self):
         """ Test _key_check for not-implemented types """
         self.assertRaises(NotImplementedError, xutil._key_check, *['foo', []])
     
-    def test_(self):
+    def test_key_check_keys(self):
         """ Test _key_check for bad subject keys """
-        passed, bad_keys = xutil._key_check('subject', {'foo': 'bar'})
+        passed, bad_keys = xutil._key_check(Subject, {'foo': 'bar'})
         self.assertFalse(passed)
         self.assertIn('foo', bad_keys)
