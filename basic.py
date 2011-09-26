@@ -4,7 +4,6 @@ from pyxnat import Interface
 import xnat_util as xutil
 
 
-"""Below are basic accessors 
 
 #  Initialize xnat
 xnat = xutil.xnat()
@@ -21,13 +20,9 @@ exp = xutil.experiment(sub, 'fmri_swr')
 #  Get your scan
 scan = xutil.scan(exp, 'mission_1')
 
-#  Grab the right resource
-res = xutil.resource(scan, 'image_nii_raw')
-"""
 
 """ These same methods create objects in XNAT if they don't exist and if you 
-pass a dictionary, you can automatically fill out metadata """
-xnat = xutil.xnat()
+pass a dictionary, you can automatically import metadata """
 
 pjt_data = {'ID':'newBTest', 'description':'another project created by scott','pi_lastname':'Burns', 'pi_firstname':'Scott', 'note':'testing'}
 new_prj = xutil.project(xnat, 'newBTest', pjt_data)

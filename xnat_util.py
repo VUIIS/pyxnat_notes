@@ -1,9 +1,18 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""This module is meant to provide more-useful interface functions to an XNAT 
+server than currently provided by pyxnat."""
+
 import os
 import time
 from ConfigParser import ConfigParser
 
-
-import nibabel as nib
+try:
+    import nibabel as nib
+    use_nibabel = True
+except ImportError:
+    use_nibabel = False
 
 from pyxnat import Interface
 from pyxnat.core.resources import Project, Subject, Experiment, Scan
@@ -195,24 +204,6 @@ def scan(experiment, name, scan_data={}):
         if not succeeded:
             raise ValueError("Bad scan data keys: %s" % ' '.join(bad))
     return scan
-
-def resource(scan, name):
-    """ Create/Update a scan's resource
-    
-    Parameters
-    ----------
-    scan: scan object
-        The scan for which you want to create/update a resource
-    name: str
-        Resource name
-        
-    Returns
-    -------
-    res: a valid resource object
-    """
-    res = _check_parent_and_get(scan, scan.resource, name)
-    #  Not sure what to specify as far as resource metadata?
-    return res
     
 def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
     """ Upload a nifti into a scan
@@ -230,26 +221,27 @@ def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
         
     """
     res = resource(scan, res_name)
-    try:
-        img = nib.load(fpath)
-        hdr = img.get_header()
-    except IOError:
-        raise IOError("%s doesn't exist on the filesystem." % fpath)
-    except nib.spatialimages.ImageFileError:
-        raise ValueError("%s doesn't appear to be a proper nifti1 image" 
-                        % fpath)
-    # map nib header keys to xnat metadata
     md = {}
-    for k, t in NIBABEL_TO_XNAT.items():
-        f = t[0]
-        md[t[1]] = f(hdr[k])
-    #  hard-code some variables
+    if use_nibabel:
+        try:
+            img = nib.load(fpath)
+            hdr = img.get_header()
+        except IOError:
+            raise IOError("%s doesn't exist on the filesystem." % fpath)
+        except nib.spatialimages.ImageFileError:
+            raise ValueError("%s doesn't appear to be a proper nifti1 image" 
+                            % fpath)
+        # map nib header keys to xnat metadata
+        for k, t in NIBABEL_TO_XNAT.items():
+            f = t[0]
+            md[t[1]] = f(hdr[k])
+        #  hard-code some variables
+        md['validation_method'] = 'nibabel header check/pyxnat tools'
+        md['validation_date'] = time.strftime('%Y-%m-%d %H:%M:%S')
     md['note'] = 'uploaded with pyxnat tools'
-    md['validation_method'] = 'nibabel header check'
-    md['validation_date'] = time.strftime('%Y-%m-%d %H:%M:%S')
     #  update md with passed arg
     md.update(other_md)
-    #  update scan metadata 
+    #  send scan metadata 
     s, bk = _update_metadata(scan, md)
     #  Upload
     res.file(file_name).put(fpath)
