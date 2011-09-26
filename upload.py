@@ -22,7 +22,7 @@ run = xutil.scan(exp, 'run1')
 xutil.add_nifti(run, 'fmri', '/Volumes/Data/NFRO1/Pre/1005/M1/SWR1.nii')
 
 """  If you can figure out other metadata (from external resources?), 
-you can also put that in """
+you can also put that in. Good keys can be found in xutil.ALLOWED_KEYS"""
 
 run2 = xutil.scan(exp, 'run2')
 md = {'quality': 'Good', 'scanner': 'Phillips', 'modality': 'fmri',
