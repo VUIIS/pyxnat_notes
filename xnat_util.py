@@ -1,5 +1,9 @@
 import os
+import time
 from ConfigParser import ConfigParser
+
+
+import nibabel as nib
 
 from pyxnat import Interface
 from pyxnat.core.resources import Project, Subject, Experiment, Scan
@@ -39,6 +43,12 @@ ALLOWED_KEYS = {Subject: set(['group', 'src', 'pi_lastname',
                     'acqType', 'facility', 'numPlanes', 'numFrames',
                     'numGates', 'planeSeparation', 'binSize', 'dataType'])}
 
+NIBABEL_TO_XNAT = {
+'session_error': (lambda x: 'Good' if x == 0 else 'Error', 'validation_status'),
+'dim': (lambda x: str(x[4]), 'frames'),
+'datatype': (lambda x: str(x.dtype), 'dataType'),
+'descrip': (lambda x: ' '.join(str(x).split()), 'series_description')
+}
 
 def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     """Initialize and test xnat connection from a previously-stored cfg file
@@ -204,19 +214,45 @@ def resource(scan, name):
     #  Not sure what to specify as far as resource metadata?
     return res
     
-def add_file(resource, name, fpath):
-    """ Put a file in this resource with given name
+def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
+    """ Upload a nifti into a scan
     
     Parameters
     ----------
-    resource: resource object
-        The Resource under which the file should go
-    name: str
-        The name of the file
+    scan: scan object
+    res_name: str
+        Name of the resource this file will be a child of
+    file_name: str
+        The name of the file in the string
     fpath: str
-        Path on local machine of file 
+        Path on local machine of file to upload
+    other_md: dict
+        
     """
-    resource.file(name).put(fpath)
+    res = resource(scan, res_name)
+    try:
+        img = nib.load(fpath)
+        hdr = img.get_header()
+    except IOError:
+        raise IOError("%s doesn't exist on the filesystem." % fpath)
+    except nib.spatialimages.ImageFileError:
+        raise ValueError("%s doesn't appear to be a proper nifti1 image" 
+                        % fpath)
+    # map nib header keys to xnat metadata
+    md = {}
+    for k, t in NIBABEL_TO_XNAT.items():
+        f = t[0]
+        md[t[1]] = f(hdr[k])
+    #  hard-code some variables
+    md['note'] = 'uploaded with pyxnat tools'
+    md['validation_method'] = 'nibabel header check'
+    md['validation_date'] = time.strftime('%Y-%m-%d %H:%M:%S')
+    #  update md with passed arg
+    md.update(other_md)
+    #  update scan metadata 
+    s, bk = _update_metadata(scan, md)
+    #  Upload
+    res.file(file_name).put(fpath)
 
 def _update_metadata(xnat_obj, new_data={}):
     """ Update metadata for a xnat object
@@ -243,11 +279,11 @@ def _update_metadata(xnat_obj, new_data={}):
         #  do the mset
         xnat_obj.attrs.mset(new_data)
         #  TODO: check that the mset worked
-        for key, val in new_data.items():
-            good_update = xnat_obj.attrs.get(key) == val
-            if not good_update:
-                #  TODO change to warning
-                print("WARNING: %s wasn't updated" % key)
+#         for key, val in new_data.items():
+#             good_update = xnat_obj.attrs.get(key) == val
+#             if not good_update:
+#                 #  TODO change to warning
+#                 print("WARNING: %s wasn't updated" % key)
     return succeeded, bad_keys
         
 def _check_parent_and_get(parent, creator_fn, name):

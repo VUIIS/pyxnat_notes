@@ -3,33 +3,27 @@
 
 import xnat_util as xutil
 
-""" This needs rewritting due to changes in xutil 
-
 #  Initialize XNAT
 xnat = xutil.xnat()
 
 #  Subjects belong to a project, so grab the project you'd like to put them in
-pjt = xnat.select.project('BTest')
+pjt = xutil.project(xnat, 'BTest')
 
-#  Experiments belong to a subject, so get a subject
+#  Grab a subject
 sub = xutil.subject(pjt, 'sub1000')
 
-exp_name = 'fmri_swr'
-exp = sub.experiment(exp_name)
+#  Grab the experiment
+exp = xutil.experiment(sub, 'fmri_swr')
 
-#  first scan
-scan_name = 'run1'
-run = exp.scan(scan_name)
+#  first run
+run = xutil.scan(exp, 'run1')
 
-#  make a new resource
-res_name = 'mr_data'
-res = run.resource(res_name)
+#  Upload nifti
+xutil.add_nifti(run, 'fmri', '/Volumes/Data/NFRO1/Pre/1005/M1/SWR1.nii')
 
-# now do the upload
-#  This is the image name in xnat
-imname = 'imag1.nii'
-#  A local nifti file that we want to upload
-nii = '/Volumes/Data/NFRO1/Pre/1005/M1/SWR1.nii'
-res.file(imname).put(nii)
-
-"""
+#  If you can figure out other metadata, you can also put that in
+run2 = xutil.scan(exp, 'run2')
+md = {'quality': 'Good', 'scanner': 'Phillips', 'modality': 'fmri',
+      'coil': '8-ch birdcage', 'fieldStrength': '3T'}
+xutil.add_nifti(run2, 'image', '/Volumes/Data/NFRO1/Pre/1005/M2/SWR2.nii',
+        other_md=md)
