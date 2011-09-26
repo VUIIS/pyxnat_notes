@@ -204,6 +204,24 @@ def scan(experiment, name, scan_data={}):
         if not succeeded:
             raise ValueError("Bad scan data keys: %s" % ' '.join(bad))
     return scan
+
+def resource(scan, name):
+    """ Create/Update a scan's resource
+    
+    Parameters
+    ----------
+    scan: scan object
+        The scan for which you want to create/update a resource
+    name: str
+        Resource name
+        
+    Returns
+    -------
+    res: a valid resource object
+    """
+    res = _check_parent_and_get(scan, scan.resource, name)
+    #  Not sure what to specify as far as resource metadata?
+    return res
     
 def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
     """ Upload a nifti into a scan
