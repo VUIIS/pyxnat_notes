@@ -1,6 +1,7 @@
 - PROJECTS
     +SUBJECTS
         +EXPERIMENTS
+            one per MR session, which is everything between going into bore and coming out
             +ASSESSORS
                 +RESOURCES
                     +FILES
@@ -14,6 +15,7 @@
                 +OUT_RESOURCES
                     +FILES
             +SCANS
+                meant to have multiple scans of different type
                 +RESOURCES
                     +FILES
             +RESOURCES
