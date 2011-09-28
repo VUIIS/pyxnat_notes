@@ -13,7 +13,8 @@ pjt = xutil.project(xnat, 'BTest')
 sub = xutil.subject(pjt, 'sub1000')
 
 #  Grab the experiment
-exp = xutil.experiment(sub, 'fmri_swr')
+#  Make sure the experiment name is unique
+exp = xutil.experiment(sub, 'fmri_swr_%s' % sub.label())
 
 #  first run
 run = xutil.scan(exp, 'run1')
