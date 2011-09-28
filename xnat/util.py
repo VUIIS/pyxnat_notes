@@ -232,7 +232,7 @@ def resource(scan, name):
     return res
 
 
-def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
+def add_nifti(scan, res_name, fpath, file_name='image.nii', other_md={}):
     """ Upload a nifti into a scan
 
     Parameters
