@@ -156,6 +156,8 @@ def subject(project, name, sub_data={}):
 def experiment(subject, name, exp_data={}):
     """ Create/Update a subject's experiment
     
+    Name must be unique!
+    
     Parameters
     ----------
     subject: Subject object
