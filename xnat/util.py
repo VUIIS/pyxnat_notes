@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""This module is meant to provide more-useful interface functions to an XNAT 
+"""This module is meant to provide more-useful interface functions to an XNAT
 server than currently provided by pyxnat."""
 
 import os
@@ -19,10 +19,10 @@ from pyxnat.core.resources import Project, Subject, Experiment, Scan
 from pyxnat.core.errors import DatabaseError
 
 ALLOWED_KEYS = {Subject: set(['group', 'src', 'pi_lastname',
-                    'pi_firstname','dob', 'yob', 'age', 'gender',
+                    'pi_firstname', 'dob', 'yob', 'age', 'gender',
                     'handedness', 'ses', 'education', 'educationDesc',
                     'race', 'ethnicity', 'weight', 'height',
-                    'gestational_age','post_menstrual_age',
+                    'gestational_age', 'post_menstrual_age',
                     'birth_weight']),
                 Project: set(['ID', 'secondary_ID', 'name',
                     'description', 'keywords', 'alias', 'pi_lastname',
@@ -59,6 +59,7 @@ NIBABEL_TO_XNAT = {
 'descrip': (lambda x: ' '.join(str(x).split()), 'series_description')
 }
 
+
 def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     """Initialize and test xnat connection from a previously-stored cfg file
 
@@ -87,24 +88,25 @@ def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
     password = cp.get('xnat', 'password')
     server = cp.get('xnat', 'server')
     cachedir = cp.get('xnat', 'cache')
-    
+
     if '~' in cachedir:
         cachedir = os.path.expanduser(cachedir)
-    
+
     xnat = Interface(server=server,
                     user=user,
                     password=password,
                     cachedir=cachedir)
-    # Because the constructor doesn't test the connection, make sure 'admin' is 
+    # Because the constructor doesn't test the connection, make sure 'admin' is
     # in the list of users. Any errors are passed to the caller.
     if user not in xnat.manage.users():
         raise ValueError('This XNAT is weird.')
     xnat._memtimeout = 0.001
     return xnat
 
+
 def project(xnat, name, proj_data={}):
     """ Create a new project/update project info
-    
+
     Parameters
     ----------
     xnat: pyxnat.Interface object
@@ -112,11 +114,11 @@ def project(xnat, name, proj_data={}):
     name: str
         Project name
     proj_data: dict
-        Project data you'd like to initialize 
+        Project data you'd like to initialize
     Returns
     -------
     pjt: Project object
-        
+
     """
     pjt = _check_parent_and_get(xnat, xnat.select.project, name)
     if proj_data:
@@ -125,9 +127,10 @@ def project(xnat, name, proj_data={}):
             raise ValueError("Bad project keys: %s" % ' '.join(bad))
     return pjt
 
+
 def subject(project, name, sub_data={}):
     """ Create a new subject/Update subject info
-    
+
     WARNING: Previously stored data will be overwritten
 
     Parameters
@@ -153,11 +156,12 @@ def subject(project, name, sub_data={}):
             raise ValueError("Bad subject data keys: %s" % ' '.join(bad))
     return sub
 
+
 def experiment(subject, name, exp_data={}):
     """ Create/Update a subject's experiment
-    
+
     Name must be unique!
-    
+
     Parameters
     ----------
     subject: Subject object
@@ -169,7 +173,7 @@ def experiment(subject, name, exp_data={}):
         See 'xnat:experimentData' at
         http://docs.xnat.org/XNAT+REST+XML+Path+Shortcuts
         for allowed keys
-        
+
     Returns
     -------
     exp: a valid experiment object
@@ -180,10 +184,11 @@ def experiment(subject, name, exp_data={}):
         if not succeeded:
             raise ValueError("Bad experiment data keys: %s" % ' '.join(bad))
     return exp
-        
+
+
 def scan(experiment, name, scan_data={}):
     """ Create/Update an experiment's scan
-    
+
     Parameters
     ----------
     experiment: experiment object
@@ -195,7 +200,7 @@ def scan(experiment, name, scan_data={}):
         See 'xnat:imageScanData' at
         http://docs.xnat.org/XNAT+REST+XML+Path+Shortcuts
         for allowed keys
-        
+
     Returns
     -------
     scan: a valid scan object
@@ -207,16 +212,17 @@ def scan(experiment, name, scan_data={}):
             raise ValueError("Bad scan data keys: %s" % ' '.join(bad))
     return scan
 
+
 def resource(scan, name):
     """ Create/Update a scan's resource
-    
+
     Parameters
     ----------
     scan: scan object
         The scan for which you want to create/update a resource
     name: str
         Resource name
-        
+
     Returns
     -------
     res: a valid resource object
@@ -224,10 +230,11 @@ def resource(scan, name):
     res = _check_parent_and_get(scan, scan.resource, name)
     #  Not sure what to specify as far as resource metadata?
     return res
-    
+
+
 def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
     """ Upload a nifti into a scan
-    
+
     Parameters
     ----------
     scan: scan object
@@ -249,7 +256,7 @@ def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
         except IOError:
             raise IOError("%s doesn't exist on the filesystem." % fpath)
         except nib.spatialimages.ImageFileError:
-            raise ValueError("%s doesn't appear to be a proper nifti1 image" 
+            raise ValueError("%s doesn't appear to be a proper nifti1 image"
                             % fpath)
         # map nib header keys to xnat metadata
         for k, t in NIBABEL_TO_XNAT.items():
@@ -261,10 +268,11 @@ def add_nifti(scan, res_name, fpath, file_name='image', other_md={}):
     md['note'] = 'uploaded with pyxnat tools'
     #  update md with passed arg
     md.update(other_md)
-    #  send scan metadata 
+    #  send scan metadata
     s, bk = _update_metadata(scan, md)
     #  Upload
     res.file(file_name).put(fpath)
+
 
 def _update_metadata(xnat_obj, new_data={}):
     """ Update metadata for a xnat object
@@ -297,10 +305,11 @@ def _update_metadata(xnat_obj, new_data={}):
 #                 #  TODO change to warning
 #                 print("WARNING: %s wasn't updated" % key)
     return succeeded, bad_keys
-        
+
+
 def _check_parent_and_get(parent, creator_fn, name):
     """ Private method to check resource owner validity and create/return
-    the new child 
+    the new child
 
     Parameters
     ----------
@@ -326,6 +335,7 @@ def _check_parent_and_get(parent, creator_fn, name):
         msg = "Cannot create object (probably a privilege issue)"
         raise DatabaseError(msg)
     return child
+
 
 def _key_check(check_type, keys):
     """ Private method to validate parameters before resource creation.
@@ -353,6 +363,3 @@ def _key_check(check_type, keys):
     else:
         bad_keys.extend(key_set.difference(ALLOWED_KEYS[check_type]))
     return passed, bad_keys
-
-        
-        
