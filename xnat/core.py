@@ -5,9 +5,9 @@ import os
 
 import util
 
-
 class XNAT(object):
-    """ This is a simple wrapper for many of the above methods """
+    """ This is a simple wrapper around pyxnat that provides some structure
+        to using XNAT """
 
     def __init__(self, interface=None, cfg=None):
         """ Constructor
@@ -63,6 +63,12 @@ class XNAT(object):
             self.subs = None
             self.subs = self.proj.subjects().get('label')
             self.sub = None
+
+            #  find all experiments
+            self.all_exps = []
+            for sub in self.subs:
+                s = self.proj.subject(sub)
+                self.all_exps.extend(s.experiments().get('label'))
 
             #  Reset all children
             ancestors = (self.exps, self.exp, self.scans, self.scan, self.ress,
