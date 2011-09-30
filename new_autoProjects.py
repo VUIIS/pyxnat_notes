@@ -18,5 +18,13 @@ cfg = ConfigParser()
 cfg.read(os.path.join(os.path.expanduser('~'), '.pycap.cfg'))
 api_key = cfg.get('keys', 'VUIIS-ProjectApp')
 
-""" We did the above so as to hide our API key and not publish it to the world
+""" We did the above to hide our API key and not publish it to the world
 when we push this code to github :) """
+
+def userByEmail(interface, email):
+    result = None
+    users = interface.manage.users();
+    for user in users:
+        if interface.manage.users.email(user).lower() == email.lower(): 
+            result = user
+    return result
