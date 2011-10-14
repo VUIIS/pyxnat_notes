@@ -82,7 +82,7 @@ for rownum in range(1,sh.nrows):
         userName += str(random.randint(0,9))
       userPass = userName+"37027"
       print "Need to create user"
-      url = "http://masi.vuse.vanderbilt.edu/xnat/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(userName)+"&xdat%3Auser.primary_password="+quote(userPass)+"&xdat%3Auser.primary_password="+quote(userPass)+"&xdat%3Auser.firstname="+quote(firstName)+"&xdat%3Auser.lastname="+quote(lastName)+"&xdat%3Auser.email="+quote(piEmail)+"&phone="+quote(piPhone)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
+      url = "http://masi.vuse.vanderbilt.edu/xnat/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(userName)+"&xdat%3Auser.primary_password="+quote(userPass)+"&xdat%3Auser.primary_password="+quote(userPass)+"&xdat%3Auser.firstname="+quote(firstName)+"&xdat%3Auser.lastname="+quote(lastName)+"&xdat%3Auser.email="+quote(piEmail)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
       print url
       print urlopen(url).read()
       piUser = userByEmail(interface,piEmail)

@@ -2,8 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import os
-
+import random
+from urllib import quote, urlopen
 from ConfigParser import ConfigParser
+
+import redcap
+from xnat import util as xutil
+
+def user_by_email(interface, email):
+    result = None
+    users = interface.manage.users();
+    for user in users:
+        if interface.manage.users.email(user).lower() == email.lower(): 
+            result = user
+    return result
+
+def search_dict_list(dl, key, value):
+    result = filter(lambda x: x[key] == value, dl)
+    if len(result) != 1:
+        raise ValueError("Collision among the %s field." % key)
+    return result[0]
+
 
 """
 Before running this, save a file called .pycap.cfg (initial period so it's hidden)
@@ -21,10 +40,75 @@ api_key = cfg.get('keys', 'VUIIS-ProjectApp')
 """ We did the above to hide our API key and not publish it to the world
 when we push this code to github :) """
 
-def userByEmail(interface, email):
-    result = None
-    users = interface.manage.users();
-    for user in users:
-        if interface.manage.users.email(user).lower() == email.lower(): 
-            result = user
-    return result
+
+""" Initialize redcap project with url and key"""
+rc_project = redcap.Project('https://redcap.vanderbilt.edu/api/', api_key)
+project_data = rc_project.export_records()
+
+""" Initialize the XNAT interface """
+xnat = xutil.xnat()
+
+""" Grab all existing project IDs """
+existing_projects = xnat.select.projects().get('id')
+
+""" Grab all projects (with proper request codes)
+in redcap """
+all_project_ids = [p['request_number'] for p in project_data if len(p['request_number']) > 0]
+
+""" Find the project ids not currently in xnat """
+projects_to_insert = list(set(all_project_ids) - set(existing_projects))
+
+
+pis = []
+for project_id in projects_to_insert:
+    p_data = search_dict_list(project_data, 'request_number', project_id)
+    md = {}
+    md['ID'] = project_id
+    md['name'] = p_data['project_title'][0:255]
+    md['secondary_ID'] = p_data['project_title'][0:23]
+
+    # transform pi name
+    pi = p_data['principal_investigator'].lower()
+    pi = pi.replace('.', '')
+    pi = pi.replace(',', '')
+    pi_parts = [x.capitalize() for x in pi.split() if x not in ('dr', 'md', 'phd')]
+    if len(pi_parts) == 0:
+        print("WARNING: cannot determine PI name for this project")
+        md['pi_firstname'] = 'missing'
+        md['pi_lastname'] = 'missing'                
+    elif len(pi_parts) == 1:
+        md['pi_firstname'] = pi_parts[0]
+        md['pi_lastname'] = 'missing'
+    elif len(pi_parts) > 1:  # Assume well formatted    
+        md['pi_firstname'] = pi_parts[0]
+        md['pi_lastname'] = pi_parts[len(pi_parts) - 1]
+    fname = md['pi_firstname']
+    lname = md['pi_lastname']
+
+    md['description'] = unicode(p_data['project_description'])
+
+    print
+    print('################')
+    print("Creating a project with the following metadata...")
+    print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
+    print('################')
+    print
+
+    new_prj = xnat.select.project(project_id)
+    if not new_prj.exists():
+        new_prj.create()
+    new_prj.attrs.mset(md)
+
+    pi_email = p_data['email']
+    pi_user = user_by_email(xnat, pi_email)
+    if not pi_user:
+        uname = fname + lname
+        while uname in xnat.manage.users():
+            uname = '%s%d' % (uname, random.randint(0, 9))
+        upass = uname + '37027'
+        print "Creating user..."
+        url = "http://masi.vuse.vanderbilt.edu/xnat/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(uname)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.firstname="+quote(fname)+"&xdat%3Auser.lastname="+quote(lname)+"&xdat%3Auser.email="+quote(pi_email)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
+        urlopen(url).read()
+        pi_user = user_by_email(xnat, pi_email)
+    #  Code below is bugging in pyxnat 0.9.1
+    # new_prj.add_user(pi_user, role='owner')
