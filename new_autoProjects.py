@@ -23,6 +23,7 @@ def search_dict_list(dl, key, value):
         raise ValueError("Collision among the %s field." % key)
     return result[0]
 
+xnat_url = 'http://masi.vuse.vanderbilt.edu/xnat'
 
 """
 Before running this, save a file called .pycap.cfg (initial period so it's hidden)
@@ -46,10 +47,10 @@ rc_project = redcap.Project('https://redcap.vanderbilt.edu/api/', api_key)
 project_data = rc_project.export_records()
 
 """ Initialize the XNAT interface """
-xnat = xutil.xnat()
+admin_xnat = xutil.xnat()
 
 """ Grab all existing project IDs """
-existing_projects = xnat.select.projects().get('id')
+existing_projects = admin_xnat.select.projects().get('id')
 
 """ Grab all projects (with proper request codes)
 in redcap """
@@ -60,7 +61,10 @@ projects_to_insert = list(set(all_project_ids) - set(existing_projects))
 
 
 pis = []
-for project_id in projects_to_insert:
+for project_id in projects_to_insert[0:5]:
+
+    print('#############')
+    print("New project: %s" % project_id)
     p_data = search_dict_list(project_data, 'request_number', project_id)
     md = {}
     md['ID'] = project_id
@@ -81,34 +85,34 @@ for project_id in projects_to_insert:
         md['pi_lastname'] = 'missing'
     elif len(pi_parts) > 1:  # Assume well formatted    
         md['pi_firstname'] = pi_parts[0]
-        md['pi_lastname'] = pi_parts[len(pi_parts) - 1]
+        md['pi_lastname'] = pi_parts[-1]
     fname = md['pi_firstname']
     lname = md['pi_lastname']
 
     md['description'] = unicode(p_data['project_description'])
 
-    print
-    print('################')
+    pi_email = p_data['email']
+    pi_user = user_by_email(admin_xnat, pi_email)
+    if not pi_user:
+        uname = fname + lname
+        while uname in admin_xnat.manage.users():
+            uname = '%s%d' % (uname, random.randint(0, 9))
+        upass = uname + '37027'
+        print "Creating user for %s %s..." % (fname, lname)
+        url = xnat_url + "/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(uname)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.firstname="+quote(fname)+"&xdat%3Auser.lastname="+quote(lname)+"&xdat%3Auser.email="+quote(pi_email)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
+        urlopen(url).read()
+        pi_user = user_by_email(admin_xnat, pi_email)
+
     print("Creating a project with the following metadata...")
     print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
-    print('################')
-    print
 
-    new_prj = xnat.select.project(project_id)
+    new_prj = admin_xnat.select.project(project_id)
     if not new_prj.exists():
         new_prj.create()
     new_prj.attrs.mset(md)
 
-    pi_email = p_data['email']
-    pi_user = user_by_email(xnat, pi_email)
-    if not pi_user:
-        uname = fname + lname
-        while uname in xnat.manage.users():
-            uname = '%s%d' % (uname, random.randint(0, 9))
-        upass = uname + '37027'
-        print "Creating user..."
-        url = "http://masi.vuse.vanderbilt.edu/xnat/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(uname)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.firstname="+quote(fname)+"&xdat%3Auser.lastname="+quote(lname)+"&xdat%3Auser.email="+quote(pi_email)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
-        urlopen(url).read()
-        pi_user = user_by_email(xnat, pi_email)
-    #  Code below is bugging in pyxnat 0.9.1
-    # new_prj.add_user(pi_user, role='owner')
+    #  Add PI to project as owner
+    print("Adding %s %s to project..." % (fname, lname))
+    new_prj.add_user(pi_user, role='owner')
+    print('#############')
+    print

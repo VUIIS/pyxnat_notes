@@ -60,8 +60,10 @@ NIBABEL_TO_XNAT = {
 }
 
 
-def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
+def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg'), server_url=None,
+            username=None, password=None, cache=os.path.join(os.path.expanduser('~'), '.xnat.cache')):
     """Initialize and test xnat connection from a previously-stored cfg file
+        or passed credentials
 
     Parameters
     ----------
@@ -73,6 +75,14 @@ def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
         password: [your password]
         server: [your xnat server]
         cache: [dir]
+    server_url: str
+        url to your xnat install
+    username: str
+        user name
+    password: str
+        user password
+    cache: str
+        Cache directory
 
     Returns
     -------
@@ -80,21 +90,26 @@ def xnat(cfg=os.path.join(os.path.expanduser('~'), '.xnat.cfg')):
 
     This may throw an error from pyxnat.core.errors
     """
-
-    cp = ConfigParser()
-    with open(cfg) as f:
-        cp.readfp(f)
-    user = cp.get('xnat', 'user')
-    password = cp.get('xnat', 'password')
-    server = cp.get('xnat', 'server')
-    cachedir = cp.get('xnat', 'cache')
-
+    if not (cfg or (server_url and username and upass)):
+        raise ValueError("Must pass cfg file or server/username/password")
+    if (server_url and user and upass):
+        server = server_url 
+        user = username
+        pword = password
+    else:
+        cp = ConfigParser()
+        with open(cfg) as f:
+            cp.readfp(f)
+        user = cp.get('xnat', 'user')
+        pword = cp.get('xnat', 'password')
+        server = cp.get('xnat', 'server')
+        cachedir = cp.get('xnat', 'cache')
     if '~' in cachedir:
         cachedir = os.path.expanduser(cachedir)
 
     xnat = Interface(server=server,
                     user=user,
-                    password=password,
+                    password=pword,
                     cachedir=cachedir)
     # Because the constructor doesn't test the connection, make sure 'admin' is
     # in the list of users. Any errors are passed to the caller.
