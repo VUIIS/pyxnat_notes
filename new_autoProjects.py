@@ -61,7 +61,7 @@ projects_to_insert = list(set(all_project_ids) - set(existing_projects))
 
 
 pis = []
-for project_id in projects_to_insert[0:5]:
+for project_id in projects_to_insert:
 
     print('#############')
     print("New project: %s" % project_id)
