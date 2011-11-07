@@ -26,7 +26,7 @@ def mail(to, subject, body=None, server=None,
     #create a message
     msg = MIMEMultipart()
     msg['From'] = from_addr
-    msg['To'] = to
+    msg['To'] = ', '.join(to)
     msg['Subject'] = subject
     msg.preamble = 'Multipart message.\n'
     
@@ -53,7 +53,7 @@ def mail(to, subject, body=None, server=None,
         smtp = smtplib.SMTP(server)
     
     #sendmail
-    resp = smtp.sendmail(msg['From'], msg['To'], msg.as_string())
+    resp = smtp.sendmail(msg['From'], to, msg.as_string())
     
     if resp:
         print("Something happened to your email...")
