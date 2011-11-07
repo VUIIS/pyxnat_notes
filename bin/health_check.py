@@ -46,4 +46,4 @@ if __name__ == '__main__':
     to = ['bennett.landman@vanderbilt.edu', 'scott.s.burns@vanderbilt.edu']
     sub = "XNAT Health Check %s" % time.strftime('%a %d %b %Y %H:%M:%s')
     
-    mail(to=, subject=sub, body=body)
+    mail(to=to, subject=sub, body=body)
