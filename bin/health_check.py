@@ -20,7 +20,7 @@ def dump():
     
     """
     dump_file = os.path.join('/', 'data', 'dumps', '%s.pg_dump' % time.strftime('%A').lower())    
-    ec = run_cmdline(['pg_dump', '-f', dump_file])
+    ec = run_cmdline('pg_dump -f %s' % dump_file])
     return dump_file, ec
 
 if __name__ == '__main__':
