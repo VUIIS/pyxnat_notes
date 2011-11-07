@@ -1,1 +1,4 @@
 *.pyc
+build/
+dist/
+xnat_tools.egg-info/
