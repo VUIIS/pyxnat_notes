@@ -22,7 +22,7 @@ def dump():
     return dump_file, ec
 
 def dh():
-    cmd = 'df -h /'
+    cmd = 'df -h'
     try:
         out = sp.check_output(cmd.split(), stderr=sp.STDOUT)
         ec = 0
