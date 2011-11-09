@@ -3,6 +3,7 @@
 
 import os
 import random
+import time
 from urllib import quote, urlopen
 
 import redcap
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     
     
     pis = []
-    print("%d project(s) to be imported..." % len(projects_to_insert))
+    print("%s: %d project(s) to be imported..." % (time.strftime('%Y-%m-%d %H:%M'), len(projects_to_insert))
     for project_id in projects_to_insert:
     
         print('#############')
