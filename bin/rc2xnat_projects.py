@@ -102,5 +102,8 @@ if __name__ == '__main__':
         #  Add PI to project as owner
         print("Adding %s %s to project..." % (fname, lname))
         new_prj.add_user(pi_user, role='owner')
+        
+        #  Set to automatically bypass pre-archive
+        new_prj.set_prearchive_code('4')
         print('#############')
         print
