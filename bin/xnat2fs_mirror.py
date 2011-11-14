@@ -32,7 +32,7 @@ def xnatID_to_fsID(xnatID):
     d = rc_proj.filter(q, output_fields=['participant_id'])
     if len(d) != 1:
         raise ValueError("more than one subject for this scan_num!")
-    return d['participant_id']
+    return d[0]['participant_id']
 
 def mirror(sub_label, exp, top_dir):
     """ Mirror all of the scans into top_dir from this experiment 
