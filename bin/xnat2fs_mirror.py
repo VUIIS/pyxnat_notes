@@ -46,7 +46,7 @@ def mirror(sub_label, exp, top_dir):
         #  Get the scan object
         xscan = exp.scan(scan)
         scan_type = xscan.attrs.get('type').replace(' ', '_')
-        res = xcan.resources().get()
+        res = xscan.resources().get()
         if len(res) > 1:
             print("Warning, mroe than one resource...using first")
         xres = xscan.resource(res[0])
