@@ -69,8 +69,8 @@ if __name__ == '__main__':
         #  This returns the actual subject object
         xsub = xproj.subject(sub)
         #  This grant has only one experiment per subject
-        exps = sub.experiments().get()
-        xexp = sub.experiment(exps[0])
+        exps = xsub.experiments().get()
+        xexp = xsub.experiment(exps[0])
         #  xexp.label() is the scanid that Cutting Lab uses
         our_id = xnatID_to_fsID(xexp.label())
         dcm_dir = os.path.join(subjects_dir, our_id, 'DICOM')
