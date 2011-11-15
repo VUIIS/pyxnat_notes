@@ -12,6 +12,9 @@ from xnat.util import xnat
 from xnat.config import rc as rc_keys
 from xnat.mail import mail
 
+class MirrorError(Exception):
+    pass
+
 TO = ['scott.s.burns@vanderbilt.edu']
 
 #  Top level directory for data, subjects go under this
@@ -51,33 +54,35 @@ def mirror(sub_label, exp, top_dir, convert_to_nii=False, nii_top_dir=None):
 
     if convert_to_nii and nii_top_dir:
         raise NotImplementedError
-
-    #  We want all scans > 100, 0 is ref    
-    good_scans = filter(lambda x: int(x) > 100, exp.scans().get())
     all_new_files = []
-    for scan in good_scans:
-        scan_num = '%02d' % (int(scan) / 100)
-        subscan_num = '%02d' % (int(scan) % 100)
-        #  Get the scan object
-        xscan = exp.scan(scan)
-        scan_type = xscan.attrs.get('type').replace(' ', '_')
-        all_res = xscan.resources().get()
-        #  Until we understand why we're getting two DCM objects,
-        #  We want the resource with the largest dcm
-        all_xres = [xscan.resource(res) for res in all_res]
-        all_fsize = [int(xres.file(xres.files().get()[0]).size()) for xres in all_xres]
-        fsize_sort = sorted(all_fsize, reverse=True)
-        xres_ind = all_fsize.index(fsize_sort[0])
-        xres = all_xres[xres_ind]
-        #  xres is now the resource with the largest file
-        files = xres.files().get()
-        if len(files) > 1:
-            print("Warning, more than one file...using first")
-        xfile = xres.file(files[0])
-        new_fname = os.path.join(top_dir, '_'.join([sub_label, scan_num, 
-                        subscan_num, scan_type])+'.DCM')
-        new_f = xfile.get_copy(new_fname)
-        all_new_files.append(new_f)
+    try:
+        #  We want all scans > 100, 0 is ref    
+        good_scans = filter(lambda x: int(x) > 100, exp.scans().get())
+        for scan in good_scans:
+            scan_num = '%02d' % (int(scan) / 100)
+            subscan_num = '%02d' % (int(scan) % 100)
+            #  Get the scan object
+            xscan = exp.scan(scan)
+            scan_type = xscan.attrs.get('type').replace(' ', '_')
+            all_res = xscan.resources().get()
+            #  Until we understand why we're getting two DCM objects,
+            #  We want the resource with the largest dcm
+            all_xres = [xscan.resource(res) for res in all_res]
+            all_fsize = [int(xres.file(xres.files().get()[0]).size()) for xres in all_xres]
+            fsize_sort = sorted(all_fsize, reverse=True)
+            xres_ind = all_fsize.index(fsize_sort[0])
+            xres = all_xres[xres_ind]
+            #  xres is now the resource with the largest file
+            files = xres.files().get()
+            if len(files) > 1:
+                print("Warning, more than one file...using first")
+            xfile = xres.file(files[0])
+            new_fname = os.path.join(top_dir, '_'.join([sub_label, scan_num, 
+                            subscan_num, scan_type])+'.DCM')
+            new_f = xfile.get_copy(new_fname)
+            all_new_files.append(new_f)
+    except:
+        raise MirrorError()
     return all_new_files            
 
 def chmod_440(f):
@@ -113,18 +118,21 @@ if __name__ == '__main__':
         top_dir = subjects_dir % {'study': args.project, 'id': our_id}
         dcm_dir = os.path.join(top_dir,'DICOM')
         if not os.path.isdir(dcm_dir):
+            email_body += "For %s, imported these files...\n" % our_id
             #  Then we need to mirror
             try:
                 os.makedirs(dcm_dir)
             except OSError:
                 #  TODO Fix
                 #  We probably are using --force
-                pass     
-            new_files = mirror(xsub.label(), xexp, dcm_dir)
-            #  Make new files only readable to owner and group
-            [chmod_440(f) for f in new_files]
-            email_body += "For %s, imported these files...\n" % our_id
-            email_body += '\n'.join(new_files)
+                pass
+            try:
+                new_files = mirror(xsub.label(), xexp, dcm_dir)
+                #  Make new files only readable to owner and group
+                [chmod_440(f) for f in new_files]
+                email_body += '\n'.join(new_files)
+            except MirrorError:
+                email_body += "ERROR OCCURED DURING MIRROR FUNCTION"
         else:
             #  Skip to next subject
             pass
