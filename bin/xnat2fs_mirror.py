@@ -36,8 +36,9 @@ def xnatID_to_fsID(xnatID):
 
 def mirror(sub_label, exp, top_dir):
     """ Mirror all of the scans into top_dir from this experiment 
-    I'd like to preserve filenames that getstudy outputs:
-    [PI]_ScanID_Scan#_SubScan#_WIP???_ScanType_Sense.DCM"""
+    
+    I'd like to preserve filenaming scheme that getstudy outputs:
+    [PI]_ScanID_Scan#_SubScan#_ScanType.DCM"""
     #  We want all scans > 100, 0 is ref
     good_scans = filter(lambda x: int(x) > 100, exp.scans().get())
     for scan in good_scans:
@@ -46,18 +47,24 @@ def mirror(sub_label, exp, top_dir):
         #  Get the scan object
         xscan = exp.scan(scan)
         scan_type = xscan.attrs.get('type').replace(' ', '_')
-        res = xscan.resources().get()
-        if len(res) > 1:
-            print("Warning, mroe than one resource...using first")
-        xres = xscan.resource(res[0])
+        all_res = xscan.resources().get()
+        #  Until we understand why we're getting two DCM objects,
+        #  We want the resource with the largest dcm
+        all_xres = [xscan.resource(res) for res in all_res]
+        fsize_sort = sorted([int(xres.file(xres.files().get()[0]).size()) for xres in all_xres], reverse=True)
+        xres_ind = all_fsize.index(fsize_sort[0])
+        xres = all_xres[xres_ind]
         files = xres.files().get()
         if len(files) > 1:
             print("Warning, more than one file...using first")
         xfile = xres.file(files[0])
         new_fname = os.path.join(top_dir, '_'.join([sub_label, scan_num, 
                         subscan_num, scan_type])+'.DCM')
-        print("Downloading file to %s" % new_fname)
-        xfile.get_copy(new_fname)
+        print "Downloading file...",
+        new_f = xfile.get_copy(new_fname)
+        print "Finished download."
+        print("Saved file to %s" % new_f)
+        print
 
 if __name__ == '__main__':
     x = xnat()
