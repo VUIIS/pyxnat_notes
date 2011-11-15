@@ -80,6 +80,11 @@ def mirror(sub_label, exp, top_dir, convert_to_nii=False, nii_top_dir=None):
         all_new_files.append(new_f)
     return all_new_files            
 
+def chmod_440(f):
+    """ Make f only readable to owner and group """
+    from stat import S_IRUSR, S_IRGRP
+    os.chmod(f, S_IRUSR | S_IRGRP)
+
 if __name__ == '__main__':
 
     args = arguments()
@@ -116,7 +121,9 @@ if __name__ == '__main__':
                 #  We probably are using --force
                 pass     
             new_files = mirror(xsub.label(), xexp, dcm_dir)
-            email_body += "For %s, imported these files..." % our_id
+            #  Make new files only readable to owner and group
+            [chmod_440(f) for f in new_files]
+            email_body += "For %s, imported these files...\n" % our_id
             email_body += '\n'.join(new_files)
         else:
             #  Skip to next subject
