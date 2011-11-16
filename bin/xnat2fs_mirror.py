@@ -28,8 +28,8 @@ def arguments():
     ap = ArgumentParser()
     #  Add arguments
     ap.add_argument('project')
-    ap.add_argument('--force')
-    
+    ap.add_argument('--convert-nii', dest='convert_nii', action='store_true',
+                    default=False)  
     return ap.parse_args()
 
 def xnatID_to_fsID(xnatID, redcap_project, query_key, unique_key):
@@ -46,14 +46,12 @@ def xnatID_to_fsID(xnatID, redcap_project, query_key, unique_key):
 #         raise ValueError("dcm file passed doesn't exist")
 #     
 
-def mirror(sub_label, exp, top_dir, convert_to_nii=False, nii_top_dir=None):
+def mirror(sub_label, exp, top_dir):
     """ Mirror all of the scans into top_dir from this experiment 
     
     I'd like to preserve filenaming scheme that getstudy outputs:
     [PI]_ScanID_Scan#_SubScan#_ScanType.DCM"""
 
-    if convert_to_nii and nii_top_dir:
-        raise NotImplementedError
     all_new_files = []
     try:
         #  We want all scans > 100, 0 is ref    
@@ -65,17 +63,16 @@ def mirror(sub_label, exp, top_dir, convert_to_nii=False, nii_top_dir=None):
             xscan = exp.scan(scan)
             scan_type = xscan.attrs.get('type').replace(' ', '_')
             all_res = xscan.resources().get()
-            #  Until we understand why we're getting two DCM objects,
-            #  We want the resource with the largest dcm
-            all_xres = [xscan.resource(res) for res in all_res]
-            all_fsize = [int(xres.file(xres.files().get()[0]).size()) for xres in all_xres]
-            fsize_sort = sorted(all_fsize, reverse=True)
-            xres_ind = all_fsize.index(fsize_sort[0])
-            xres = all_xres[xres_ind]
-            #  xres is now the resource with the largest file
+            #  We want the resource who's label is 'DICOM'
+            #  If the listcomp has len == 0, this will throw an index error
+            xres = [xscan.resource(res) for res in all_res if xscan.resource(res).label() == 'DICOM'][0]
             files = xres.files().get()
+            #  We can just warn if more than one file
             if len(files) > 1:
                 print("Warning, more than one file...using first")
+            #  But if there's no files, throw
+            if len(files) == 0:
+                raise MirrorError('No files for this resource')
             xfile = xres.file(files[0])
             new_fname = os.path.join(top_dir, '_'.join([sub_label, scan_num, 
                             subscan_num, scan_type])+'.DCM')
@@ -131,7 +128,9 @@ if __name__ == '__main__':
                 #  Make new files only readable to owner and group
                 [chmod_440(f) for f in new_files]
                 email_body += '\n'.join(new_files)
-            except MirrorError:
+                if args.convert_nii:
+                    pass
+            except:
                 email_body += "ERROR OCCURED DURING MIRROR FUNCTION"
         else:
             #  Skip to next subject
