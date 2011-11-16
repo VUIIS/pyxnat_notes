@@ -7,6 +7,7 @@ server than currently provided by pyxnat."""
 import os
 import time
 from ConfigParser import ConfigParser
+import subprocess as sb
 
 try:
     import nibabel as nib
@@ -378,3 +379,13 @@ def _key_check(check_type, keys):
     else:
         bad_keys.extend(key_set.difference(ALLOWED_KEYS[check_type]))
     return passed, bad_keys
+
+
+def dcm_to_nii(dcm, out_dir):
+    """ Use dcm2nii to convert dcm files to nifti format """
+    call = 'dcm2nii -e n -d n -g n -f y -n y -p n -v y -o %(out)s %(dcm)s' % {'out':out_dir, 'dcm':dcm}
+    try:
+        output = sb.check_output(call.split())
+    except sb.CalledProcessError:
+        output = "DCM --> NII conversion failure\n"
+    return output
