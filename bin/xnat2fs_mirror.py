@@ -8,7 +8,7 @@ local filesystem """
 import os
 import redcap
 
-from xnat.util import xnat
+from xnat.util import xnat, dcm_to_nii
 from xnat.config import rc as rc_keys
 from xnat.mail import mail
 
@@ -129,7 +129,11 @@ if __name__ == '__main__':
                 [chmod_440(f) for f in new_files]
                 email_body += '\n'.join(new_files)
                 if args.convert_nii:
-                    pass
+                    nii_dir = os.path.join(top_dir, 'NIFTI')
+                    if not os.path.isdir(nii_dir):
+                        os.makedirs(nii_dir)
+                        output = dcm_to_nii(new_files[0], nii_dir)
+                        email_body += output
             except:
                 email_body += "ERROR OCCURED DURING MIRROR FUNCTION"
         else:
