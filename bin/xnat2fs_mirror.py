@@ -136,12 +136,15 @@ if __name__ == '__main__':
                 email_body += '\n'.join(new_files)
                 email_body += message
                 if args.convert_nii:
-                    nii_dir = os.path.join(top_dir, 'NIFTI')
-                    if not os.path.isdir(nii_dir):
-                        os.makedirs(nii_dir)
-                        email_body += "\n\nDoing DCM --> NII conversion...\n\n"
-                        output = dcm_to_nii(new_files[0], nii_dir)
-                        email_body += output
+                    email_body += "\n\nDoing DCM --> NII conversion...\n\n"
+                    if new_files:
+                        nii_dir = os.path.join(top_dir, 'NIFTI')
+                        if not os.path.isdir(nii_dir):
+                            os.makedirs(nii_dir)
+                            output = dcm_to_nii(new_files[0], nii_dir)
+                            email_body += output
+                    else:
+                        email_body += "No new files to convert\n"
             except MirrorError as e:
                 email_body += "ERROR OCCURED DURING MIRROR FUNCTION\n"
                 email_body += e.args
