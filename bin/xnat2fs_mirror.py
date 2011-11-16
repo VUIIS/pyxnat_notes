@@ -132,6 +132,7 @@ if __name__ == '__main__':
                     nii_dir = os.path.join(top_dir, 'NIFTI')
                     if not os.path.isdir(nii_dir):
                         os.makedirs(nii_dir)
+                        email_body += "\n\nDoing DCM --> NII conversion...\n\n"
                         output = dcm_to_nii(new_files[0], nii_dir)
                         email_body += output
             except:
