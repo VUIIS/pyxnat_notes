@@ -53,6 +53,7 @@ def mirror(sub_label, exp, top_dir):
     [PI]_ScanID_Scan#_SubScan#_ScanType.DCM"""
 
     all_new_files = []
+    message = '\n'
     try:
         #  We want all scans > 100, 0 is ref    
         good_scans = filter(lambda x: int(x) > 100, exp.scans().get())
@@ -65,22 +66,27 @@ def mirror(sub_label, exp, top_dir):
             all_res = xscan.resources().get()
             #  We want the resource who's label is 'DICOM'
             #  If the listcomp has len == 0, this will throw an index error
-            xres = [xscan.resource(res) for res in all_res if xscan.resource(res).label() == 'DICOM'][0]
+            good_xres = [xscan.resource(res) for res in all_res if xscan.resource(res).label() == 'DICOM']
+            if len(good_xres) != 1:
+                message += "Scan %s: zero or more than one DICOM resource(s)" % (scan)
+                continue
+            xres = good_xres[0]
             files = xres.files().get()
             #  We can just warn if more than one file
             if len(files) > 1:
-                print("Warning, more than one file...using first")
-            #  But if there's no files, throw
+                message += "Scan %s: more than one file for resource %s\n" % (scan, xres.id())
+            #  But if there's no files, add to message and continue
             if len(files) == 0:
-                raise MirrorError('No files for this resource')
+                message += "Scan %s: zero files for resource %s\n" % (scan, xres.id())
+                continue
             xfile = xres.file(files[0])
             new_fname = os.path.join(top_dir, '_'.join([sub_label, scan_num, 
                             subscan_num, scan_type])+'.DCM')
             new_f = xfile.get_copy(new_fname)
             all_new_files.append(new_f)
     except:
-        raise MirrorError()
-    return all_new_files            
+        raise MirrorError(message)
+    return (all_new_files, message)            
 
 def chmod_440(f):
     """ Make f only readable to owner and group """
@@ -124,10 +130,11 @@ if __name__ == '__main__':
                 #  We probably are using --force
                 pass
             try:
-                new_files = mirror(xsub.label(), xexp, dcm_dir)
+                new_files, message = mirror(xsub.label(), xexp, dcm_dir)
                 #  Make new files only readable to owner and group
                 [chmod_440(f) for f in new_files]
                 email_body += '\n'.join(new_files)
+                email_body += message
                 if args.convert_nii:
                     nii_dir = os.path.join(top_dir, 'NIFTI')
                     if not os.path.isdir(nii_dir):
@@ -135,8 +142,9 @@ if __name__ == '__main__':
                         email_body += "\n\nDoing DCM --> NII conversion...\n\n"
                         output = dcm_to_nii(new_files[0], nii_dir)
                         email_body += output
-            except:
-                email_body += "ERROR OCCURED DURING MIRROR FUNCTION"
+            except MirrorError as e:
+                email_body += "ERROR OCCURED DURING MIRROR FUNCTION\n"
+                email_body += e.args
         else:
             #  Skip to next subject
             pass
