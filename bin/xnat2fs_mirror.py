@@ -32,6 +32,15 @@ def arguments():
                     default=False)  
     return ap.parse_args()
 
+def touch_file(top_dir):
+    return os.path.join(top_dir, '.import_success')
+
+def do_mirror(top_dir):
+    do_it = True
+    if os.path.isfile(touch_file(top_dir)):
+        do_it = False
+    return do_it
+
 def xnatID_to_fsID(xnatID, redcap_project, query_key, unique_key):
     """ We want to take the scan ID from xnat and map it to our labeling system """
     q = redcap.Query('scan_num', {'eq': xnatID})
@@ -39,12 +48,6 @@ def xnatID_to_fsID(xnatID, redcap_project, query_key, unique_key):
     if len(d) != 1:
         raise ValueError("more than one subject for this search!")
     return d[0][unique_key]
-
-# def dcm_to_nii(dcm, nii):
-#     import nibabel as nib
-#     if not os.path.isfile(dcm):
-#         raise ValueError("dcm file passed doesn't exist")
-#     
 
 def mirror(sub_label, exp, top_dir):
     """ Mirror all of the scans into top_dir from this experiment 
@@ -91,7 +94,10 @@ def mirror(sub_label, exp, top_dir):
 def chmod_440(f):
     """ Make f only readable to owner and group """
     from stat import S_IRUSR, S_IRGRP
-    os.chmod(f, S_IRUSR | S_IRGRP)
+    try:
+        os.chmod(f, S_IRUSR | S_IRGRP)
+    except:
+        pass
 
 if __name__ == '__main__':
 
@@ -120,7 +126,7 @@ if __name__ == '__main__':
                     project_info['scan_key'], project_info['key'])
         top_dir = subjects_dir % {'study': args.project, 'id': our_id}
         dcm_dir = os.path.join(top_dir,'DICOM')
-        if not os.path.isdir(dcm_dir):
+        if do_mirror(top_dir):
             email_body += "For %s, imported these files...\n" % our_id
             #  Then we need to mirror
             try:
@@ -133,6 +139,8 @@ if __name__ == '__main__':
                 new_files, message = mirror(xsub.label(), xexp, dcm_dir)
                 #  Make new files only readable to owner and group
                 [chmod_440(f) for f in new_files]
+                #  Touch touch_file
+                open(touch_file(top_dir), 'w').close()
                 email_body += '\n'.join(new_files)
                 email_body += message
                 if args.convert_nii:
