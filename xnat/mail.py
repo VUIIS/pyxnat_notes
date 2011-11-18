@@ -12,7 +12,7 @@ from config import email as email_cfg
 
 def mail(to, subject, body=None, server=None,
             from_addr=None,  pw=None,
-            attachment_pdf=None):
+            attachment_pdf=None, body_type='plain'):
     """Send an email through the gmail account
     http://stackoverflow.com/questions/778202/smtplib-and-gmail-python-script-problems
     """
@@ -32,7 +32,7 @@ def mail(to, subject, body=None, server=None,
     
     # attach body text
     if body:
-        part = MIMEText(body)
+        part = MIMEText(body, body_type)
         msg.attach(part)
 
     if attachment_pdf and os.path.isfile(attachment_pdf):

@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+import sys
+import os
+
+from xnat.config import rc as rc_keys
+
+from xnat.mail import mail
+
+from redcap import Project
+
+if __name__ == '__main__':
+    try:
+        pid = sys.argv[1]
+        pikw = sys.argv[2]
+        patid = sys.argv[3]
+        patname= sys.argv[4]
+    except IndexError:
+        print("usage: validateProjectID [ProjectID] [PIKeyWord] [PatientID] [PatientName]")
+        sys.exit(1)
+        
+    #  Look up redcap to check if project id is there
+    rc_project = Project("https://redcap.vanderbilt.edu/api/", rc_keys['vuiis-projectapp'])
+    
+    data = rc_project.export_records(fields=['request_number'])
+    
+    all_pids = [p['request_number'] for p in data if len(p['request_number']) > 0]
+    
+    if not pid in all_pids:
+        with open(os.path.expanduser('~/validatePrj/xnat_misbehavior.txt')) as f:
+            raw = f.read()
+            raw_sp = raw.splitlines()
+
+        pi_emails = [(raw.split('\t')[0], raw.split('\t')[1]) for raw in raw_sp if raw]
+        
+        #  Search for pikw in this list of tuples
+        try:
+            pi_email = filter(lambda x: x[0] == pikw, pi_emails)[0]
+            #  PI is in our list, we'll email to them
+            to = [pi_email[1]]
+            subject = 'Non-conformant Study Information'
+        except IndexError:
+            #  PI is not in our list
+            with open(os.path.expanduser('~/validatePrj/xnat_admin.txt')) as f:
+                to_raw = f.read().splitlines()
+                to = filter(lambda x: x != '', to_raw)
+                subject = '[PI NOT FOUND IN LIST] Non-conformant Study Information' 
+        finally:
+            with open(os.path.expanduser('~/validatePrj/xnat_emailbody.txt')) as f:
+                raw = f.read()
+            body = raw % {'user': pikw, 'pat_id': patid, 'pat_name': patname}
+            mail(to, subject, body, body_type='html')
+    else:
+        #  Project is in redcap, which means its in xnat, everything is cool
+        pass
+    
