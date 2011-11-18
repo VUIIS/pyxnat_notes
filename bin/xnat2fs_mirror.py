@@ -21,7 +21,9 @@ TO = ['scott.s.burns@vanderbilt.edu']
 subjects_dir = '/fs0/New_Server/%(study)s/MR_Raw/%(id)s'
 
 PROJECT_DATA = {'RCV':{'key':'participant_id', 'scan_key': 'scan_num',
-                        'config_key': 'rc', 'code':'2096'}}
+                        'config_key': 'rc', 'code':'2096'},
+                'LERD': {'key': 'participant_id', 'scan_key': 'scan_num',
+                        'config_key': 'lerd', 'code': '2120'}}
 
 def arguments():
     from argparse import ArgumentParser
