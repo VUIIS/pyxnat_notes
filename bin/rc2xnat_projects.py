@@ -31,7 +31,9 @@ if __name__ == '__main__':
     api_key = rc_keys['vuiis-projectapp']
     """ Initialize redcap project with url and key"""
     rc_project = redcap.Project('https://redcap.vanderbilt.edu/api/', api_key)
-    project_data = rc_project.export_records()
+    fields_of_interest = ['request_number', 'principal_investigator',
+                        'project_title', 'project_description', 'email']
+    project_data = rc_project.export_records(fields=fields_of_interest)
     
     """ Initialize the XNAT interface """
     admin_xnat = xutil.xnat()
@@ -39,8 +41,7 @@ if __name__ == '__main__':
     """ Grab all existing project IDs """
     existing_projects = admin_xnat.select.projects().get('id')
     
-    """ Grab all projects (with proper request codes)
-    in redcap """
+    """ Grab all projects (with proper request codes) in redcap """
     all_project_ids = [p['request_number'] for p in project_data if len(p['request_number']) > 0]
     
     """ Find the project ids not currently in xnat """
