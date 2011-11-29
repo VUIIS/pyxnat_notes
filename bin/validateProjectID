@@ -4,7 +4,7 @@
 
 import sys
 import os
-
+from time import strftime
 from xnat.config import rc as rc_keys
 
 from xnat.mail import mail
@@ -20,12 +20,19 @@ if __name__ == '__main__':
     except IndexError:
         print("usage: validateProjectID [ProjectID] [PIKeyWord] [PatientID] [PatientName]")
         sys.exit(1)
-        
-    #  Look up redcap to check if project id is there
-    rc_project = Project("https://redcap.vanderbilt.edu/api/", rc_keys['vuiis-projectapp'])
-    
-    data = rc_project.export_records(fields=['request_number'])
-    
+
+    lf = os.path.expanduser('~/logs/validateProjectID.log')
+    msg = '\n{time} {status} {pid} {pikw} {patid} {patname} {extra}'
+    msg_dict = {'pid': pid, 'pikw': pikw, 'patid': patid, 'patname': patname}
+
+    try:
+        #  Look up redcap to check if project id is there
+        rc_project = Project("https://redcap.vanderbilt.edu/api/", rc_keys['vuiis-projectapp'])  
+        data = rc_project.export_records(fields=['request_number'])
+    except:
+        msg_dict['status'] = 'UHOH'
+        msg_dict['extra'] = 'REDCAP LOOKUP FAILED'
+
     all_pids = [p['request_number'] for p in data if len(p['request_number']) > 0]
     
     if not pid in all_pids:
@@ -41,18 +48,27 @@ if __name__ == '__main__':
             #  PI is in our list, we'll email to them
             to = [pi_email[1]]
             subject = 'Non-conformant Study Information'
+            msg_dict['extra'] = "PI IN LIST; EMAIL SENT TO PI"
         except IndexError:
             #  PI is not in our list
             with open(os.path.expanduser('~/validatePrj/xnat_admin.txt')) as f:
                 to_raw = f.read().splitlines()
                 to = filter(lambda x: x != '', to_raw)
-                subject = '[PI NOT FOUND IN LIST] Non-conformant Study Information' 
+                subject = '[PI NOT FOUND IN LIST] Non-conformant Study Information'
+                msg_dict['extra'] = "PI NOT IN LIST; EMAIL SENT TO ADMIN"
         finally:
             with open(os.path.expanduser('~/validatePrj/xnat_emailbody.txt')) as f:
                 raw = f.read()
             body = raw % {'user': pikw, 'pat_id': patid, 'pat_name': patname}
             mail(to, subject, body, body_type='html')
+            msg_dict['status'] = "ERROR"
     else:
         #  Project is in redcap, which means its in xnat, everything is cool
-        pass
-    
+        msg_dict['status'] = 'OK'
+        msg_dict['extra'] = ''
+
+    #  Log this
+    msg_dict['time'] = strftime('%Y-%m-%d %H:%M')
+    with open(lf, 'a+') as f:
+        f.write(msg % msg_dict)
+
