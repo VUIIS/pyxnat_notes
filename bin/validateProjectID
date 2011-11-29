@@ -23,7 +23,8 @@ if __name__ == '__main__':
 
     lf = os.path.expanduser('~/logs/validateProjectID.log')
     msg = '\n{time} {status} {pid} {pikw} {patid} {patname} {extra}'
-    msg_dict = {'pid': pid, 'pikw': pikw, 'patid': patid, 'patname': patname}
+    msg_dict = {'pid': pid, 'pikw': pikw, 'patid': patid, 'patname': patname,
+                'time': strftime('%Y-%m-%d %H:%M')}
 
     try:
         #  Look up redcap to check if project id is there
@@ -68,7 +69,6 @@ if __name__ == '__main__':
         msg_dict['extra'] = ''
 
     #  Log this
-    msg_dict['time'] = strftime('%Y-%m-%d %H:%M')
     with open(lf, 'a+') as f:
         f.write(msg.format(msg_dict))
 
