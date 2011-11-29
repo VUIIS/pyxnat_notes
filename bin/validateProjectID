@@ -70,5 +70,5 @@ if __name__ == '__main__':
     #  Log this
     msg_dict['time'] = strftime('%Y-%m-%d %H:%M')
     with open(lf, 'a+') as f:
-        f.write(msg % msg_dict)
+        f.write(msg.format(msg_dict))
 
