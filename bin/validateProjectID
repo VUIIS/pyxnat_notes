@@ -22,7 +22,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     lf = os.path.expanduser('~/logs/validateProjectID.log')
-    msg = '\n{time} {status} {pid} {pikw} {patid} {patname} {extra}'
+    msg = '{time} {status} {pid} {pikw} {patid} {patname} {extra}\n'
     msg_dict = {'pid': pid, 'pikw': pikw, 'patid': patid, 'patname': patname, 'time': strftime('%Y-%m-%d %H:%M')}
 
     try:
