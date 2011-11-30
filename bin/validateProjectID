@@ -21,7 +21,7 @@ if __name__ == '__main__':
         print("usage: validateProjectID [ProjectID] [PIKeyWord] [PatientID] [PatientName]")
         sys.exit(1)
 
-    lf = os.path.expanduser('~/logs/validateProjectID.log')
+    lf = '/home/xnat/logs/validateProjectID.log'
     msg = '{time} {status} {pid} {pikw} {patid} {patname} {extra}\n'
     msg_dict = {'pid': pid, 'pikw': pikw, 'patid': patid, 'patname': patname, 'time': strftime('%Y-%m-%d %H:%M')}
 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     all_pids = [p['request_number'] for p in data if len(p['request_number']) > 0]
     
     if not pid in all_pids:
-        with open(os.path.expanduser('~/validatePrj/xnat_misbehavior.txt')) as f:
+        with open('/home/xnat/validatePrj/xnat_misbehavior.txt') as f:
             raw = f.read()
             raw_sp = raw.splitlines()
 
@@ -51,13 +51,13 @@ if __name__ == '__main__':
             msg_dict['extra'] = "PI IN LIST; EMAIL SENT TO PI"
         except IndexError:
             #  PI is not in our list
-            with open(os.path.expanduser('~/validatePrj/xnat_admin.txt')) as f:
+            with open('/home/xnat/validatePrj/xnat_admin.txt') as f:
                 to_raw = f.read().splitlines()
                 to = filter(lambda x: x != '', to_raw)
                 subject = '[PI NOT FOUND IN LIST] Non-conformant Study Information'
                 msg_dict['extra'] = "PI NOT IN LIST; EMAIL SENT TO ADMIN"
         finally:
-            with open(os.path.expanduser('~/validatePrj/xnat_emailbody.txt')) as f:
+            with open('/home/xnat/validatePrj/xnat_emailbody.txt') as f:
                 raw = f.read()
             body = raw % {'user': pikw, 'pat_id': patid, 'pat_name': patname}
             mail(to, subject, body, body_type='html')
