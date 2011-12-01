@@ -18,7 +18,7 @@ if __name__ == '__main__':
         patid = sys.argv[3]
         patname= sys.argv[4]
     except IndexError:
-        print("usage: validateProjectID [ProjectID] [PIKeyWord] [PatientID] [PatientName]")
+        print("%s usage: validateProjectID [ProjectID] [PIKeyWord] [PatientID] [PatientName]" % strftime('%Y-%m-%d %H:%M'))
         sys.exit(1)
 
     lf = '/home/xnat/logs/validateProjectID.log'
