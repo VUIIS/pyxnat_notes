@@ -47,7 +47,7 @@ def xnatID_to_fsID(xnatID, redcap_project, query_key, unique_key):
     """ We want to take the scan ID from xnat and map it to our labeling system """
     q = redcap.Query('scan_num', {'eq': xnatID})
     d = redcap_project.filter(q, output_fields=[unique_key])
-    if len(d) != 1:
+    if len(d) >= 1:
         raise ValueError("more than one subject for this search!")
     return d[0][unique_key]
 
