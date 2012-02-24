@@ -7,9 +7,8 @@ from pyxnat import Interface
 # Change this for different projects
 P = '2096'
 
-xnat = Interface('http://masi.vuse.vanderbilt.edu/xnat', 'sburns', 'Whitaker240!!')
 # Passing no arguments, this will ask for values at the commandline
-# xnat = Interface()
+xnat = Interface()
 # Or, you can pass installation URL, username, password
 # xnat = Interface('http://masi.vuse.vanderbilt.edu', 'sburns', MYPASSWORD)
 
