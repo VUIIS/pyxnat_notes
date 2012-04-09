@@ -98,11 +98,11 @@ if __name__ == '__main__':
         pi_email = p_data['pi_email']
         pi_user = user_by_email(admin_xnat, pi_email)
         if not pi_user:
-            uname = fname + lname
+            uname = pi_email.split('@')[0]
             while uname in admin_xnat.manage.users():
                 uname = '%s%d' % (uname, random.randint(0, 9))
             upass = uname + '37027'
-            print "Creating user for %s %s..." % (fname, lname)
+            print "Creating user for %s %s with username %s ..." % (fname, lname, uname)
             url = xnat_url + "/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(uname)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.firstname="+quote(fname)+"&xdat%3Auser.lastname="+quote(lname)+"&xdat%3Auser.email="+quote(pi_email)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
             urlopen(url).read()
             pi_user = user_by_email(admin_xnat, pi_email)
