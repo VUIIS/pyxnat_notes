@@ -5,6 +5,7 @@ __license__ = 'BSD 3-Clause'
 import os
 import subprocess as sp
 import time
+from glob import glob
 
 from xnat.mail import mail
 #  Simple way to connect to XNAT
@@ -65,18 +66,16 @@ if __name__ == '__main__':
     body += out
     body += "End disk usage \n\n"
 
-    """ Push.err """
-    body += "Push.err...\n"
-    out, _ = tail(os.path.expanduser('~/dcmrelay/push.err'), n=20)
-    body += out
-    body += "End push.err \n\n"
-
-    """ Listen.err """
-    body += "Listen.err...\n"
-    out, _ = tail(os.path.expanduser('~/dcmrelay/listen.err'), n=20)
-    body += out
-    body += "End listen.err \n\n"
-
+    """ DCM Relay Error files """
+    body += "Begin Error files...\n"
+    for err in glob(os.path.expanduser('~/dcmrelay/*.err')):
+        text_lines = []
+        text_lines.append("Begin %s..." % err)
+        out, _ = tail(err, n=20)
+        text_lines.append(out)
+        text_lines.append("End %s." % err)
+        body += '\n'.join(text_lines)
+    body += "End Error files.\n"
 
     """ Xnat statistics """
     body += "XNAT system statistics...\n"
