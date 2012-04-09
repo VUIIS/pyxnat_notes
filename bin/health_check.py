@@ -73,7 +73,7 @@ if __name__ == '__main__':
         text_lines.append("Begin %s..." % err)
         out, _ = tail(err, n=20)
         text_lines.append(out)
-        text_lines.append("End %s." % err)
+        text_lines.append("End %s.\n\n" % err)
         body += '\n'.join(text_lines)
     body += "End Error files.\n"
 
