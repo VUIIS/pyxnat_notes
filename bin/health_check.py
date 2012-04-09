@@ -12,9 +12,9 @@ from xnat.util import xnat
 
 def dump():
     """ Dump database to rolling weekly directory
-    
+
     Dumps can be found in /data/dumps/
-    
+
     """
     dump_file = os.path.join('/', 'data', 'dumps', '%s.pg_dump' % time.strftime('%A').lower())
     cmd = 'pg_dump -f %s' % dump_file
@@ -22,37 +22,62 @@ def dump():
     return dump_file, ec
 
 def dh():
-    cmd = 'df -h'
+    out, ec = run_cmd('df -h')
+    return out, ec
+
+def run_cmd(cmd):
+    """ Run shell command
+
+    out: stdout/stderr (combined)
+    ec: exit code
+    """
     try:
         out = sp.check_output(cmd.split(), stderr=sp.STDOUT)
         ec = 0
-    except CalledProcessError as e:
+    except sp.CalledProcessError as e:
         out = e.output
         ec = 1
+    return out, ec
+
+def tail(fp, n=10):
+    out, ec = run_cmd('tail -n %d %s' % (n, fp))
     return out, ec
 
 if __name__ == '__main__':
     """ Check health of XNAT system """
     body = ''
-    
+
     body += "Running XNAT health checks...\n"
     body += "Began at %s\n\n" % time.strftime('%H:%M:%S')
-    
+
     """ DB Dump """
-    body += "Dumping database....\n"    
+    body += "Dumping database....\n"
     df, error = dump()
     if not error:
         body += "Successful database dump to %s\n\n" % df
     else:
         body += "Error dumping to %s\n\n" % df
     """ End DB dump """
-    
+
     """ Disk usage """
     body += "Disk usage...\n"
     out, error = dh()
     body += out
     body += "End disk usage \n\n"
-    
+
+    """ Push.err """
+    body += "Push.err...\n"
+    out, _ = tail(os.path.expanduser('~/dcmrelay/push.err'), n=20)
+    body += out
+    body += "End push.err \n\n"
+
+    """ Listen.err """
+    body += "Listen.err...\n"
+    out, _ = tail(os.path.expanduser('~/dcmrelay/listen.err'), n=20)
+    body += out
+    body += "End listen.err \n\n"
+
+
     """ Xnat statistics """
     body += "XNAT system statistics...\n"
     x = xnat()
@@ -66,13 +91,8 @@ if __name__ == '__main__':
         all_sessions.extend(proj.experiments().get())
     body += "# sessions: %d\n" % len(all_sessions)
     #  We could go deeper into database if we wanted...
-    
-    
-    
+
     body += "Finish at %s" % time.strftime('%H:%M:%S')
-    #  Continue adding health checks here, appending to body
-    
     to = ['bennett.landman@vanderbilt.edu', 'scott.s.burns@vanderbilt.edu']
     sub = "XNAT Health Check %s" % time.strftime('%a %d %b %Y %H:%M')
-    
     mail(to=to, subject=sub, body=body)
