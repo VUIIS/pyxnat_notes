@@ -40,8 +40,13 @@ if __name__ == '__main__':
             raw = f.read()
             raw_sp = raw.splitlines()
 
-        pi_emails = [(raw.split(' ')[0], raw.split(' ')[1]) for raw in raw_sp if raw]
-        
+        try:
+		# Split at spaces
+		pi_emails = [(raw.split(' ')[0], raw.split(' ')[1]) for raw in raw_sp if raw]
+        except IndexError:
+		# Split at tabs
+		pi_emails = [(raw.split('\t')[0], raw.split('\t')[1]) for raw in raw_sp if raw]
+	
         #  Search for pikw in this list of tuples
         try:
             pi_email = filter(lambda x: x[0] == pikw, pi_emails)[0]
