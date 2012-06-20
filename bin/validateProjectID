@@ -33,8 +33,11 @@ if __name__ == '__main__':
         msg_dict['status'] = 'UHOH'
         msg_dict['extra'] = 'REDCAP LOOKUP FAILED'
 
-    all_pids = [p['request_number'] for p in data if len(p['request_number']) > 0]
-    
+    # Old all_pids in case new one goes wrong.
+    # all_pids = [p['request_number'] for p in data if len(p['request_number']) > 0]
+
+    all_pids = [p['request_number'] for p in data if (len(p['request_number']) > 0 or len(p['project_id'] > 0))]
+
     if not pid in all_pids:
         with open('/home/xnat/validatePrj/xnat_misbehavior.txt') as f:
             raw = f.read()
