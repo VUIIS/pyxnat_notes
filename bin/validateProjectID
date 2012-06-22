@@ -28,17 +28,22 @@ if __name__ == '__main__':
     try:
         #  Look up redcap to check if project id is there
         rc_project = Project("https://redcap.vanderbilt.edu/api/", rc_keys['vuiis-projectapp'])  
-        data = rc_project.export_records(fields=['project_label'])
+        data = rc_project.export_records(fields=['project_label', 'matching_number'])
     except:
         msg_dict['status'] = 'UHOH'
         msg_dict['extra'] = 'REDCAP LOOKUP FAILED'
 
-    # Old all_pids in case new one goes wrong.
+    # Get all project IDs from redcap data
     all_pids = [p['project_label'] for p in data if len(p['project_label']) > 0]
 
-    # all_pids = [p['request_number'] for p in data if len(p['request_number']) > 0 or len(p['project_id']) > 0]
+    # Get matching numbers from redcap data
+    mat_num = [p['matching_number'] for p in data if len(p['matching_number']) > 0]
 
-    if not pid in all_pids:
+    # Boolean checks for if pid is in either all_pids or mat_num
+    pid_check = pid in all_pids
+    mat_check = pid in mat_num
+    overall = pid_check or mat_check
+    if not overall:
         with open('/home/xnat/validatePrj/xnat_misbehavior.txt') as f:
             raw = f.read()
             raw_sp = raw.splitlines()
