@@ -3,29 +3,105 @@
 
 import random
 import time
-from urllib import quote, urlopen
+import requests
 
 import redcap
 from xnat import util as xutil
 from xnat.config import rc as rc_keys
 
+XNAT_URL = 'http://masi.vuse.vanderbilt.edu:8078/xnat'
+
+
 def user_by_email(interface, email):
     result = None
-    users = interface.manage.users();
+    users = interface.manage.users()
     for user in users:
         if interface.manage.users.email(user).lower() == email.lower():
             result = user
     return result
 
-def search_dict_list(dl, key, value):
-    result = filter(lambda x: x[key] == value, dl)
-    if len(result) != 1:
-        raise ValueError("Collision among the %s field." % key)
+
+def search_dict_list_in(dl, key, value):
+    result = filter(lambda x: value in x[key], dl)
+    if len(result) < 1:
+        raise ValueError("Empty search among the %s field." % key)
     return result[0]
 
 
+def make_new_project(interface, project_data, lastname):
+    print('#############')
+    print("New project: %s" % lastname)
+    p_data = search_dict_list_in(project_data, 'pi_name', lastname)
+    last_up = lastname.upper()
+    md = {}
+    md['ID'] = last_up
+    md['name'] = 'PROJECT FOR %s' % last_up
+    md['secondary_ID'] = ''
+
+    # transform pi name
+    fname, lname = parse_pi_name(p_data['pi_name'])
+    md['pi_firstname'] = fname
+    md['pi_lastname'] = lname
+
+    md['description'] = "All sessions acquired for Dr. %s" % lastname
+
+    pi_email = p_data['pi_email']
+    pi_user = user_by_email(interface, pi_email)
+    if not pi_user:
+        uname = pi_email.split('@')[0]
+        while uname in interface.manage.users():
+            uname = '%s%d' % (uname, random.randint(0, 9))
+        upass = uname + ''.join([str(random.randint(0, 9)) for _ in range(10)])
+        print "Creating user for %s %s with username %s ..." % (fname, lname, uname)
+        register_user(uname, upass, fname, lname, pi_email)
+        pi_user = user_by_email(interface, pi_email)
+
+    print("Creating a project with the following metadata...")
+    print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
+
+    new_prj = interface.select.project(lastname)
+    if not new_prj.exists():
+        new_prj.create()
+    new_prj.attrs.mset(md)
+
+    #  Add PI to project as owner
+    print("Adding %s %s to project..." % (fname, lname))
+    new_prj.add_user(pi_user, role='owner')
+
+    #  Set to automatically bypass pre-archive
+    new_prj.set_prearchive_code('4')
+    print('#############')
+    print
+
+
+def register_user(login, upass, fname, lname, email):
+    pl = {'xdat:user.login': login,
+          'xdat:user.primary_password': upass,
+          'xdat:user.firstname': fname,
+          'xdat:user.lastname': lname,
+          'xdat:user.email': email,
+          'lab': 'NA',
+          'comments': 'NA',
+          'xdat:user.primary_password.encrypt': 'true'}
+    r = requests.get(XNAT_URL + "/app/action/XDATRegisterUser", params=pl)
+    r.raise_for_errors()
+
+
+def parse_pi_name(name):
+    if ',' not in name:
+        return '', ''
+    parts = name.replace(' ', '').replace('.', '').split(',')
+    last = parts[0]
+    first = parts[1]
+    return first, last
+
+
+def get_lastnames(project_data):
+    return list(set([parse_pi_name(x['pi_name'])[1] for x in project_data
+        if parse_pi_name(x['pi_name'])[0]]))
+
+
 if __name__ == '__main__':
-    xnat_url = 'http://masi.vuse.vanderbilt.edu/xnat'
 
     api_key = rc_keys['vuiis-newapp']
     """ Initialize redcap project with url and key"""
@@ -41,85 +117,66 @@ if __name__ == '__main__':
     project_data = rc_project.export_records(fields=fields_of_interest)
 
     """ Initialize the XNAT interface """
-    admin_xnat = xutil.xnat()
+    interface = xutil.xnat()
 
     """ Grab all existing project IDs """
-    existing_projects = admin_xnat.select.projects().get('id')
+    existing_projects = interface.select.projects().get('id')
 
-    """ Grab all projects (with proper request codes) in redcap """
-    p54 = [(p['project_number'], p['orig_projectid']) for p in project_data]
+    """ Get all transformed PI lastnames """
+    lastnames = get_lastnames(project_data)
 
     projects_to_insert = []
     """ Find the project ids not currently in xnat """
-    for p5, p4 in p54:
-        if p4 in existing_projects or p5 in existing_projects:
+    for lastname in lastnames:
+        if lastname in existing_projects:
             # Project in xnat
             continue
-        if p4: # There is a four digit code
-            projects_to_insert.append((p4, 'orig_projectid'))
-        elif p5:
-            projects_to_insert.append((p5, 'project_number'))
         else:
-            # Blank for both, don't care about this row
-            pass
+            projects_to_insert.append(lastname)
 
-    pis = []
     print("%s: %d project(s) to be imported..." % (time.strftime('%Y-%m-%d %H:%M'), len(projects_to_insert)))
-    for project_id, id_key in projects_to_insert:
+    lastname = projects_to_insert[0]
+    # for lastname in projects_to_insert:
+    #     make_new_project(interface, project_data, lastname)
 
-        print('#############')
-        print("New project: %s" % project_id)
-        p_data = search_dict_list(project_data, id_key, project_id)
-        md = {}
-        md['ID'] = project_id
-        md['name'] = p_data['project_title'][0:255]
-        md['secondary_ID'] = p_data['project_title'][0:23]
+    p_data = search_dict_list_in(project_data, 'pi_name', lastname)
+    last_up = lastname.upper()
+    md = {}
+    md['ID'] = last_up
+    md['name'] = '%s SESSIONS' % last_up
+    md['secondary_ID'] = ''
 
-        # transform pi name
-        pi = p_data['pi_name'].lower()
-        pi = pi.replace('.', '')
-        pi = pi.replace(',', '')
-        pi_parts = [x.capitalize() for x in pi.split() if x not in ('dr', 'md', 'phd', 'ms')]
-        if len(pi_parts) == 0:
-            print("WARNING: cannot determine PI name for this project")
-            md['pi_firstname'] = 'missing'
-            md['pi_lastname'] = 'missing'
-        elif len(pi_parts) == 1:
-            md['pi_firstname'] = pi_parts[0]
-            md['pi_lastname'] = 'missing'
-        elif len(pi_parts) > 1:  # Assume well formatted
-            md['pi_firstname'] = pi_parts[0]
-            md['pi_lastname'] = pi_parts[-1]
-        fname = md['pi_firstname']
-        lname = md['pi_lastname']
+    # transform pi name
+    fname, lname = parse_pi_name(p_data['pi_name'])
+    md['pi_firstname'] = fname
+    md['pi_lastname'] = lname
 
-        md['description'] = unicode(p_data['description'])
+    md['description'] = "All sessions acquired for Dr. %s" % lastname
 
-        pi_email = p_data['pi_email']
-        pi_user = user_by_email(admin_xnat, pi_email)
-        if not pi_user:
-            uname = pi_email.split('@')[0]
-            while uname in admin_xnat.manage.users():
-                uname = '%s%d' % (uname, random.randint(0, 9))
-            upass = uname + '37027'
-            print "Creating user for %s %s with username %s ..." % (fname, lname, uname)
-            url = xnat_url + "/app/action/XDATRegisterUser?xdat%3Auser.login="+quote(uname)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.primary_password="+quote(upass)+"&xdat%3Auser.firstname="+quote(fname)+"&xdat%3Auser.lastname="+quote(lname)+"&xdat%3Auser.email="+quote(pi_email)+"&lab=NA&comments=NA&xdat%3Auser.primary_password.encrypt=true"
-            urlopen(url).read()
-            pi_user = user_by_email(admin_xnat, pi_email)
+    pi_email = p_data['pi_email']
+    pi_user = user_by_email(interface, pi_email)
+    if not pi_user:
+        uname = pi_email.split('@')[0]
+        while uname in interface.manage.users():
+            uname = '%s%d' % (uname, random.randint(0, 9))
+        upass = uname + ''.join([str(random.randint(0, 9)) for _ in range(10)])
+        print "Creating user for %s %s with username %s ..." % (fname, lname, uname)
+        register_user(uname, upass, fname, lname, pi_email)
+        pi_user = user_by_email(interface, pi_email)
 
-        print("Creating a project with the following metadata...")
-        print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
+    # print("Creating a project with the following metadata...")
+    # print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
 
-        new_prj = admin_xnat.select.project(project_id)
-        if not new_prj.exists():
-            new_prj.create()
-        new_prj.attrs.mset(md)
+    # new_prj = interface.select.project(lastname)
+    # if not new_prj.exists():
+    #     new_prj.create()
+    # new_prj.attrs.mset(md)
 
-        #  Add PI to project as owner
-        print("Adding %s %s to project..." % (fname, lname))
-        new_prj.add_user(pi_user, role='owner')
+    # #  Add PI to project as owner
+    # print("Adding %s %s to project..." % (fname, lname))
+    # new_prj.add_user(pi_user, role='owner')
 
-        #  Set to automatically bypass pre-archive
-        new_prj.set_prearchive_code('4')
-        print('#############')
-        print
+    # #  Set to automatically bypass pre-archive
+    # new_prj.set_prearchive_code('4')
+    # print('#############')
+    # print
