@@ -123,7 +123,7 @@ if __name__ == '__main__':
     projects_to_insert = []
     """ Find the project ids not currently in xnat """
     for lastname in lastnames:
-        if lastname in existing_projects:
+        if lastname.upper() in existing_projects:
             # Project in xnat
             continue
         else:
