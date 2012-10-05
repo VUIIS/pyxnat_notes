@@ -35,7 +35,7 @@ def make_new_project(interface, project_data, lastname):
     last_up = lastname.upper()
     md = {}
     md['ID'] = last_up
-    md['name'] = 'PROJECT FOR %s' % last_up
+    md['name'] = last_up
     md['secondary_ID'] = ''
 
     # transform pi name
@@ -59,7 +59,7 @@ def make_new_project(interface, project_data, lastname):
     print("Creating a project with the following metadata...")
     print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
 
-    new_prj = interface.select.project(lastname)
+    new_prj = interface.select.project(last_up)
     if not new_prj.exists():
         new_prj.create()
     new_prj.attrs.mset(md)
@@ -67,11 +67,6 @@ def make_new_project(interface, project_data, lastname):
     #  Add PI to project as owner
     print("Adding %s %s to project..." % (fname, lname))
     new_prj.add_user(pi_user, role='owner')
-
-    #  Set to automatically bypass pre-archive
-    new_prj.set_prearchive_code('4')
-    print('#############')
-    print
 
 
 def register_user(login, upass, fname, lname, email):
@@ -84,7 +79,7 @@ def register_user(login, upass, fname, lname, email):
           'comments': 'NA',
           'xdat:user.primary_password.encrypt': 'true'}
     r = requests.get(XNAT_URL + "/app/action/XDATRegisterUser", params=pl)
-    r.raise_for_errors()
+    r.raise_for_status()
 
 
 def parse_pi_name(name):
@@ -135,48 +130,5 @@ if __name__ == '__main__':
             projects_to_insert.append(lastname)
 
     print("%s: %d project(s) to be imported..." % (time.strftime('%Y-%m-%d %H:%M'), len(projects_to_insert)))
-    lastname = projects_to_insert[0]
-    # for lastname in projects_to_insert:
-    #     make_new_project(interface, project_data, lastname)
-
-    p_data = search_dict_list_in(project_data, 'pi_name', lastname)
-    last_up = lastname.upper()
-    md = {}
-    md['ID'] = last_up
-    md['name'] = '%s SESSIONS' % last_up
-    md['secondary_ID'] = ''
-
-    # transform pi name
-    fname, lname = parse_pi_name(p_data['pi_name'])
-    md['pi_firstname'] = fname
-    md['pi_lastname'] = lname
-
-    md['description'] = "All sessions acquired for Dr. %s" % lastname
-
-    pi_email = p_data['pi_email']
-    pi_user = user_by_email(interface, pi_email)
-    if not pi_user:
-        uname = pi_email.split('@')[0]
-        while uname in interface.manage.users():
-            uname = '%s%d' % (uname, random.randint(0, 9))
-        upass = uname + ''.join([str(random.randint(0, 9)) for _ in range(10)])
-        print "Creating user for %s %s with username %s ..." % (fname, lname, uname)
-        register_user(uname, upass, fname, lname, pi_email)
-        pi_user = user_by_email(interface, pi_email)
-
-    # print("Creating a project with the following metadata...")
-    # print '\n'.join(['%s:\t\t\t%s' % (k, v) for k, v in md.items()])
-
-    # new_prj = interface.select.project(lastname)
-    # if not new_prj.exists():
-    #     new_prj.create()
-    # new_prj.attrs.mset(md)
-
-    # #  Add PI to project as owner
-    # print("Adding %s %s to project..." % (fname, lname))
-    # new_prj.add_user(pi_user, role='owner')
-
-    # #  Set to automatically bypass pre-archive
-    # new_prj.set_prearchive_code('4')
-    # print('#############')
-    # print
+    for lastname in projects_to_insert:
+        make_new_project(interface, project_data, lastname)
